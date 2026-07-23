@@ -7,7 +7,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.3",
-        "endroid/qr-code": "*",
+        "endroid/qr-code": "~6.0.0",
         "intervention/image": "*",
         "laravel/breeze": "^2.4",
         "laravel/framework": "^13.8",
@@ -82,6 +82,9 @@
     },
     "config": {
         "optimize-autoloader": true,
+        "platform": {
+            "php": "8.3.0"
+        },
         "preferred-install": "dist",
         "sort-packages": true,
         "allow-plugins": {
