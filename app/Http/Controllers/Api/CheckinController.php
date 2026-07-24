@@ -15,6 +15,7 @@ class CheckinController extends Controller
         $request->validate([
             'guest_token' => 'required|string',
             'client_timestamp' => 'nullable|date',
+            'event_id' => 'nullable|integer',
         ]);
 
         $tenantId = session('tenant_id');
@@ -22,10 +23,16 @@ class CheckinController extends Controller
             return response()->json(['message' => 'Unauthorized'], 401);
         }
 
-        $guest = Guest::where(function ($q) use ($request) {
+        $guestQuery = Guest::where(function ($q) use ($request) {
             $q->where('qr_token', $request->guest_token)
               ->orWhere('short_code', $request->guest_token);
-        })->where('tenant_id', $tenantId)->first();
+        })->where('tenant_id', $tenantId);
+
+        if ($request->filled('event_id')) {
+            $guestQuery->where('event_id', $request->event_id);
+        }
+
+        $guest = $guestQuery->first();
 
         if (!$guest) {
             return response()->json(['message' => 'Invalid guest token'], 404);

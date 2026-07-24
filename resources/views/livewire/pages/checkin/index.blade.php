@@ -103,7 +103,7 @@ new #[Layout('layouts.app')] class extends Component
 
             <!-- Camera Scanner -->
             <div x-show="mode === 'camera'" class="mb-6">
-                <div id="qr-reader" class="w-full max-w-sm mx-auto rounded-lg overflow-hidden"></div>
+                <video id="qr-reader" class="w-full max-w-sm mx-auto rounded-lg overflow-hidden bg-black/5 dark:bg-black/20 object-cover"></video>
                 
                 <!-- Camera Error Banner -->
                 <div x-show="cameraError" style="display:none" class="mt-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-600 dark:text-red-400 flex items-center justify-between gap-2">

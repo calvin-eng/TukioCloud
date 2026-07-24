@@ -85,3 +85,34 @@ test('DoorStaff can access /check-in and EventManager is redirected to dashboard
         ->get('/check-in')
         ->assertRedirectToRoute('dashboard');
 });
+
+test('POST /api/checkin with correct event_id succeeds', function () {
+    $user = User::factory()->create(['tenant_id' => $this->tenant->id]);
+    $user->assignRole('DoorStaff');
+
+    $response = $this
+        ->actingAs($user)
+        ->withSession(['tenant_id' => $this->tenant->id])
+        ->postJson('/api/checkin', [
+            'guest_token' => $this->guest->qr_token,
+            'event_id' => $this->event->id,
+        ]);
+
+    $response->assertStatus(201);
+});
+
+test('POST /api/checkin with incorrect event_id returns 404', function () {
+    $user = User::factory()->create(['tenant_id' => $this->tenant->id]);
+    $user->assignRole('DoorStaff');
+
+    $response = $this
+        ->actingAs($user)
+        ->withSession(['tenant_id' => $this->tenant->id])
+        ->postJson('/api/checkin', [
+            'guest_token' => $this->guest->qr_token,
+            'event_id' => 99999, // wrong event_id
+        ]);
+
+    $response->assertStatus(404);
+});
+

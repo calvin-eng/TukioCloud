@@ -58,12 +58,18 @@ async function updateByGuestId(guestId, updates) {
     }
 }
 
-async function processToken(token) {
+async function processToken(token, eventId) {
     var trimmed = (token || '').trim().toUpperCase();
     if (!trimmed) return { status: 'invalid', name: '', message: 'Please enter a valid code' };
 
+    if (!eventId && window.__CHECKIN_DATA) {
+        eventId = window.__CHECKIN_DATA.eventId;
+    }
+
     var guest = await db.guests.get(trimmed);
-    if (!guest) return { status: 'invalid', name: '', message: 'Invalid guest code' };
+    if (!guest || (eventId && guest.event_id != eventId)) {
+        return { status: 'invalid', name: '', message: 'Invalid guest code' };
+    }
 
     if (guest.checked_in) {
         var time = guest.checked_in_at
@@ -85,12 +91,15 @@ async function processToken(token) {
     });
     console.log('[TukioCheckin] processToken — write complete for', guest.name, '(guest_id:', guest.guest_id, ') event_id:', guest.event_id);
 
-    syncWithServer(trimmed, checkedInAt, guest.guest_id);
+    syncWithServer(trimmed, checkedInAt, guest.guest_id, guest.event_id);
 
     return { status: 'checked_in', name: guest.name, message: 'Welcome! Checked in successfully' };
 }
 
-async function syncWithServer(token, checkedInAt, guestId) {
+async function syncWithServer(token, checkedInAt, guestId, eventId) {
+    if (!eventId && window.__CHECKIN_DATA) {
+        eventId = window.__CHECKIN_DATA.eventId;
+    }
     var csrf = document.querySelector('meta[name="csrf-token"]') && document.querySelector('meta[name="csrf-token"]').getAttribute('content');
     try {
         var response = await fetch('/api/checkin', {
@@ -103,6 +112,7 @@ async function syncWithServer(token, checkedInAt, guestId) {
             body: JSON.stringify({
                 guest_token: token,
                 client_timestamp: checkedInAt,
+                event_id: eventId,
             }),
         });
 
@@ -164,7 +174,7 @@ async function retryUnsynced() {
         var item = items[i];
         if (seen[item.guest_id]) continue;
         seen[item.guest_id] = true;
-        await syncWithServer(item.guest_token, item.checked_in_at, item.guest_id);
+        await syncWithServer(item.guest_token, item.checked_in_at, item.guest_id, item.event_id);
     }
 }
 
@@ -204,7 +214,16 @@ async function getRecentCheckins(limit) {
 
 async function getPendingCount() {
     var all = await db.guests.toArray();
-    var count = all.filter(function (g) { return !g.synced && g.checked_in; }).length;
+    var unsynced = all.filter(function (g) { return !g.synced && g.checked_in; });
+    var seen = {};
+    var count = 0;
+    for (var i = 0; i < unsynced.length; i++) {
+        var g = unsynced[i];
+        if (!seen[g.guest_id]) {
+            seen[g.guest_id] = true;
+            count++;
+        }
+    }
     console.log('[TukioCheckin] getPendingCount —', count, 'unsynced');
     return count;
 }

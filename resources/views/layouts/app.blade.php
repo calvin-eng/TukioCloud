@@ -50,8 +50,7 @@
         </div>
     </div>
 
-    <!-- QR scanner library (loaded globally so it survives wire:navigate) -->
-    <script src="{{ asset('vendor/html5-qrcode/html5-qrcode.min.js') }}"></script>
+    <!-- QR scanner library loaded via Vite -->
     <!-- Alpine component for the check-in page.
              
              PRIMARY path (always works): define checkinApp as a global function.
@@ -141,71 +140,61 @@
                         this.cameraError = 'Secure context (HTTPS) required for camera access';
                         return;
                     }
-                    if (!navigator.mediaDevices?.getUserMedia) {
-                        this.cameraError = 'Camera API not supported in this browser';
+                    var videoElem = document.getElementById('qr-reader');
+                    if (!videoElem) {
+                        console.warn('[checkinApp] video element not found');
                         return;
                     }
-                    if (typeof Html5Qrcode === 'undefined') {
-                        var self = this;
-                        setTimeout(function() {
-                            if (typeof Html5Qrcode !== 'undefined') {
-                                self.startScanner();
-                            } else {
-                                self.cameraError = 'QR scanner script failed to load';
-                            }
-                        }, 1000);
+                    if (typeof QrScanner === 'undefined') {
+                        this.cameraError = 'QR scanner library not loaded';
                         return;
                     }
                     var self = this;
-                    this.stopScanner().then(function() {
-                        try {
-                            self.qrScanner = new Html5Qrcode('qr-reader');
-                            self.qrScanner.start({
-                                    facingMode: 'environment'
-                                }, {
-                                    fps: 10,
-                                    qrbox: {
-                                        width: 250,
-                                        height: 250
-                                    }
-                                },
-                                function(decodedText) {
-                                    self.handleResult(decodedText);
-                                },
-                                function() {}
-                            ).then(function() {
-                                self.scannerRunning = true;
-                            }).catch(function(err) {
-                                self.scannerRunning = false;
-                                var errName = err ? (err.name || err.toString()) : '';
-                                if (errName.includes('NotAllowedError')) {
-                                    self.cameraError = 'Camera permission denied';
-                                } else if (errName.includes('NotFoundError')) {
-                                    self.cameraError = 'No camera found';
-                                } else {
-                                    self.cameraError = 'could not start camera';
-                                }
-                                console.warn('[checkinApp] Camera start failed:', err);
-                            });
-                        } catch (e) {
+                    this.stopScanner();
+                    try {
+                        this.qrScanner = new QrScanner(
+                            videoElem,
+                            function(result) {
+                                self.handleResult(result.data);
+                            },
+                            {
+                                returnDetailedScanResult: true,
+                                highlightScanRegion: true,
+                            }
+                        );
+                        this.qrScanner.start().then(function() {
+                            self.scannerRunning = true;
+                        }).catch(function(err) {
                             self.scannerRunning = false;
-                            self.cameraError = 'could not start camera';
-                            console.warn('[checkinApp] Camera start failed:', e);
-                        }
-                    });
+                            var errName = err ? (err.name || err.toString()) : '';
+                            if (errName.includes('NotAllowedError')) {
+                                self.cameraError = 'Camera permission denied';
+                            } else if (errName.includes('NotFoundError')) {
+                                self.cameraError = 'No camera found';
+                            } else {
+                                self.cameraError = 'could not start camera';
+                            }
+                            console.warn('[checkinApp] Camera start failed:', err);
+                        });
+                    } catch (e) {
+                        self.scannerRunning = false;
+                        self.cameraError = 'could not start camera';
+                        console.warn('[checkinApp] Camera start failed:', e);
+                    }
                 },
-
 
                 stopScanner() {
                     if (this.qrScanner) {
-                        var scanner = this.qrScanner;
+                        try {
+                            this.qrScanner.stop();
+                            this.qrScanner.destroy();
+                        } catch (e) {
+                            console.warn('[checkinApp] Error stopping scanner:', e);
+                        }
                         this.qrScanner = null;
-                        this.scannerRunning = false;
-                        return scanner.stop().catch(function() {});
                     }
-                    return Promise.resolve();
+                    this.scannerRunning = false;
                 },
-
 
                 processManualCode: function() {
                     console.log('[checkinApp] processManualCode() clicked, code:', this.manualCode);
@@ -225,11 +214,12 @@
                         return;
                     }
 
-                    await this.stopScanner();
+                    this.stopScanner();
 
                     console.log('[checkinApp] handleResult — awaiting processToken...');
 
-                    var res = await TukioCheckin.processToken(token);
+                    var eventId = window.__CHECKIN_DATA ? window.__CHECKIN_DATA.eventId : null;
+                    var res = await TukioCheckin.processToken(token, eventId);
 
                     console.log(
                         '[checkinApp] handleResult — processToken returned, result:',
