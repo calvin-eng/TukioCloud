@@ -78,6 +78,7 @@
                 online: navigator.onLine,
                 qrScanner: null,
                 scannerRunning: false,
+                processing: false,
                 cameraError: '',
 
                 async init() {
@@ -177,7 +178,7 @@
                         }
                     });
                 },
-                
+
 
                 stopScanner() {
                     if (this.qrScanner) {
@@ -198,27 +199,51 @@
                 },
 
                 async handleResult(token) {
+                    if (this.processing) return;
+                    this.processing = true;
+
                     console.log('[checkinApp] handleResult() token:', token);
-                    if (!window.TukioCheckin) return;
-                    this.stopScanner();
+
+                    if (!window.TukioCheckin) {
+                        this.processing = false;
+                        return;
+                    }
+
+                    await this.stopScanner();
+
                     console.log('[checkinApp] handleResult — awaiting processToken...');
+
                     var res = await TukioCheckin.processToken(token);
-                    console.log('[checkinApp] handleResult — processToken returned, result:', res.status, 'for', res.name);
+
+                    console.log(
+                        '[checkinApp] handleResult — processToken returned, result:',
+                        res.status,
+                        'for',
+                        res.name
+                    );
+
                     this.result = {
                         show: true,
                         status: res.status,
                         name: res.name,
                         message: res.message
                     };
+
                     var self = this;
+
                     setTimeout(function() {
                         console.log('[checkinApp] handleResult — 800ms elapsed, calling refreshList...');
                         self.refreshList();
-                        if (self.mode === 'camera') self.$nextTick(function() {
-                            self.startScanner();
-                        });
+                        self.processing = false;
+
+                        if (self.mode === 'camera') {
+                            self.$nextTick(function() {
+                                self.startScanner();
+                            });
+                        }
                     }, 800);
                 },
+                
 
                 formatTime: function(iso) {
                     if (!iso) return '';
