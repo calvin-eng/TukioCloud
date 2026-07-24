@@ -86,9 +86,12 @@ class CardGenerationService
         $this->placeName($canvas, $guest->name, [
             'x' => $template->name_x,
             'y' => $template->name_y,
-            'font_size' => $template->name_font_size,
-            'font_color' => $template->name_font_color,
-            'font_path' => $template->name_font_path ?? resource_path('fonts/NotoSans-Regular.ttf'),
+            'font_size' => $template->font_size ?? $template->name_font_size ?? 48,
+            'font_color' => $template->font_color ?? $template->name_font_color ?? '#1a1a1a',
+            'font_path' => $template->name_font_path ?? $template->font_family ?? resource_path('fonts/NotoSans-Regular.ttf'),
+            'font_italic' => $template->font_italic ?? false,
+            'font_bold' => $template->font_bold ?? false,
+            'name_box_width' => $template->name_box_width,
             'alignment' => 'center',
         ]);
 
@@ -124,9 +127,12 @@ class CardGenerationService
         $this->placeName($canvas, $guest->name, [
             'x' => $template->name_x,
             'y' => $template->name_y,
-            'font_size' => $template->name_font_size,
-            'font_color' => $template->name_font_color,
-            'font_path' => $template->name_font_path ?? resource_path('fonts/NotoSans-Regular.ttf'),
+            'font_size' => $template->font_size ?? $template->name_font_size ?? 48,
+            'font_color' => $template->font_color ?? $template->name_font_color ?? '#1a1a1a',
+            'font_path' => $template->name_font_path ?? $template->font_family ?? resource_path('fonts/NotoSans-Regular.ttf'),
+            'font_italic' => $template->font_italic ?? false,
+            'font_bold' => $template->font_bold ?? false,
+            'name_box_width' => $template->name_box_width,
             'alignment' => 'center',
         ]);
 

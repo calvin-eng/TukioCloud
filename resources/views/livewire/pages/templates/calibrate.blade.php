@@ -37,6 +37,13 @@ new #[Layout('layouts.app')] class extends Component
             $this->nameY = $t->name_y;
             $this->qrX = $t->qr_x;
             $this->qrY = $t->qr_y;
+            $this->fontFamily = $t->font_family ?? 'NotoSans-Regular.ttf';
+            $this->fontSize = $t->font_size ?? 48;
+            $this->fontColor = $t->font_color ?? '#1a1a1a';
+            $this->fontItalic = $t->font_italic ?? false;
+            $this->fontBold = $t->font_bold ?? false;
+            $this->qrSize = $t->qr_size ?? 300;
+            $this->nameBoxWidth = $t->name_box_width;
             if ($t->background_path && Storage::disk('public')->exists($t->background_path)) {
                 $this->backgroundPreview = route('calibrate.bg', ['filename' => basename($t->background_path)]);
                 session(['calibrate_bg' => $t->background_path]);
@@ -51,6 +58,41 @@ new #[Layout('layouts.app')] class extends Component
         $this->storeBackground();
         $bg = session('calibrate_bg');
         $this->backgroundPreview = $bg ? route('calibrate.bg', ['filename' => basename($bg)]) : '';
+        $this->refreshPreview();
+    }
+
+    public function updatedFontFamily(): void
+    {
+        $this->refreshPreview();
+    }
+
+    public function updatedFontSize(): void
+    {
+        $this->refreshPreview();
+    }
+
+    public function updatedFontColor(): void
+    {
+        $this->refreshPreview();
+    }
+
+    public function updatedFontItalic(): void
+    {
+        $this->refreshPreview();
+    }
+
+    public function updatedFontBold(): void
+    {
+        $this->refreshPreview();
+    }
+
+    public function updatedQrSize(): void
+    {
+        $this->refreshPreview();
+    }
+
+    public function updatedNameBoxWidth(): void
+    {
         $this->refreshPreview();
     }
 
@@ -79,10 +121,13 @@ new #[Layout('layouts.app')] class extends Component
                 'preview_name_y' => $template->name_y,
                 'preview_qr_x' => $template->qr_x,
                 'preview_qr_y' => $template->qr_y,
-                'preview_qr_size' => $template->qr_size ?? 300,
-                'preview_name_font_color' => $template->name_font_color ?? '#1a1a1a',
-                'preview_name_font_size' => $template->name_font_size ?? 48,
-                'preview_name_font_path' => $template->name_font_path ?? resource_path('fonts/NotoSans-Regular.ttf'),
+                'preview_qr_size' => $template->qr_size ?? $this->qrSize ?? 300,
+                'preview_name_font_color' => $template->font_color ?? $template->name_font_color ?? $this->fontColor ?? '#1a1a1a',
+                'preview_name_font_size' => $template->font_size ?? $template->name_font_size ?? $this->fontSize ?? 48,
+                'preview_name_font_path' => $template->font_family ?? $template->name_font_path ?? $this->fontFamily ?? resource_path('fonts/NotoSans-Regular.ttf'),
+                'preview_font_italic' => $template->font_italic ?? false,
+                'preview_font_bold' => $template->font_bold ?? false,
+                'preview_name_box_width' => $template->name_box_width ?? $this->nameBoxWidth,
                 'preview_output_quality' => $template->output_quality ?? 90,
                 'preview_output_width' => $template->output_width ?? 1080,
                 'preview_output_height' => $template->output_height ?? 1350,
@@ -109,6 +154,13 @@ new #[Layout('layouts.app')] class extends Component
             'name_y' => $this->nameY,
             'qr_x' => $this->qrX,
             'qr_y' => $this->qrY,
+            'font_family' => $this->fontFamily ?? 'NotoSans-Regular.ttf',
+            'font_size' => $this->fontSize ?? 48,
+            'font_color' => $this->fontColor ?? '#1a1a1a',
+            'font_italic' => $this->fontItalic ?? false,
+            'font_bold' => $this->fontBold ?? false,
+            'qr_size' => $this->qrSize ?? 300,
+            'name_box_width' => $this->nameBoxWidth,
             'output_width' => 1080,
             'output_height' => 1350,
         ];
@@ -274,24 +326,60 @@ new #[Layout('layouts.app')] class extends Component
                                 </div>
                             </div>
 
-                            <div class="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
-                                <div>
-                                    <x-input-label value="Name X" />
-                                    <x-text-input wire:model.live="nameX" type="number" class="mt-1 block w-full" />
-                                </div>
-                                <div>
-                                    <x-input-label value="Name Y" />
-                                    <x-text-input wire:model.live="nameY" type="number" class="mt-1 block w-full" />
-                                </div>
-                                <div>
-                                    <x-input-label value="QR X" />
-                                    <x-text-input wire:model.live="qrX" type="number" class="mt-1 block w-full" />
-                                </div>
-                                <div>
-                                    <x-input-label value="QR Y" />
-                                    <x-text-input wire:model.live="qrY" type="number" class="mt-1 block w-full" />
-                                </div>
-                            </div>
+                <div class="mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 text-sm">
+                    <div>
+                        <x-input-label value="Name X" />
+                        <x-text-input wire:model.live="nameX" type="number" class="mt-1 block w-full" />
+                    </div>
+                    <div>
+                        <x-input-label value="Name Y" />
+                        <x-text-input wire:model.live="nameY" type="number" class="mt-1 block w-full" />
+                    </div>
+                    <div>
+                        <x-input-label value="QR X" />
+                        <x-text-input wire:model.live="qrX" type="number" class="mt-1 block w-full" />
+                    </div>
+                    <div>
+                        <x-input-label value="QR Y" />
+                        <x-text-input wire:model.live="qrY" type="number" class="mt-1 block w-full" />
+                    </div>
+                    <div>
+                        <x-input-label value="Font Family" />
+                        <select wire:model.live="fontFamily" class="mt-1 block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm">
+                            <option value="NotoSans-Regular.ttf">Noto Sans Regular</option>
+                            <option value="Roboto-Regular.ttf">Roboto Regular</option>
+                            <option value="OpenSans-Regular.ttf">Open Sans Regular</option>
+                            <option value="Montserrat-Regular.ttf">Montserrat Regular</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <x-input-label value="Italic" class="whitespace-nowrap" />
+                        <input type="checkbox" wire:model.live="fontItalic" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500" />
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <x-input-label value="Bold" class="whitespace-nowrap" />
+                        <input type="checkbox" wire:model.live="fontBold" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500" />
+                    </div>
+                    <div>
+                        <x-input-label value="Font Size" />
+                        <input type="range" wire:model.live="fontSize" min="12" max="100" step="1" class="mt-1 block w-full" />
+                        <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ $fontSize }}px</div>
+                    </div>
+                    <div>
+                        <x-input-label value="Font Color" />
+                        <input type="color" wire:model.live="fontColor" class="mt-1 block w-full h-8 p-0 border-0 rounded" />
+                    </div>
+                    <div>
+                        <x-input-label value="QR Size" />
+                        <input type="range" wire:model.live="qrSize" min="50" max="400" step="10" class="mt-1 block w-full" />
+                        <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ $qrSize }}px</div>
+                    </div>
+                    <div>
+                        <x-input-label value="Name Box Width" />
+                        <input type="range" wire:model.live="nameBoxWidth" min="0" max="800" step="10" class="mt-1 block w-full" />
+                        <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ $nameBoxWidth }}px</div>
+                    </div>
+                </div>
                         @else
                             <div class="flex items-center justify-center h-80 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-gray-400 text-sm">
                                 Upload a background image to begin

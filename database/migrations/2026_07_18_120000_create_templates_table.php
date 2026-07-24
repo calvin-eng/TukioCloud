@@ -23,6 +23,12 @@ return new class extends Migration
             $table->integer('output_width')->default(1080);
             $table->integer('output_height')->default(1350);
             $table->integer('output_quality')->default(90);
+            $table->string('font_family')->default('NotoSans-Regular.ttf');
+            $table->integer('font_size')->default(48);
+            $table->string('font_color')->default('#1a1a1a');
+            $table->boolean('font_italic')->default(false);
+            $table->boolean('font_bold')->default(false);
+            $table->integer('name_box_width')->nullable();
             $table->timestamps();
         });
     }
