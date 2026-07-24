@@ -148,7 +148,7 @@ class SendInvitationJob implements ShouldQueue
     {
         $eventDate = $this->event->date?->format('d/m/Y') ?? '';
         $shortCode = (string) ($guest->short_code ?: $guest->qr_token);
-        $link = 'https://vivaroslimited.live/c/' . rawurlencode($shortCode);
+        $link = route('guest.invitation', ['short_code' => $shortCode]);
 
         return str_replace(
             ['{guest_name}', '{event_name}', '{code}', '{link}', '{date}'],
