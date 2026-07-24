@@ -139,53 +139,56 @@
                         }, 1000);
                         return;
                     }
-                    this.stopScanner();
                     var self = this;
-                    try {
-                        this.qrScanner = new Html5Qrcode('qr-reader');
-                        this.qrScanner.start({
-                                facingMode: 'environment'
-                            }, {
-                                fps: 10,
-                                qrbox: {
-                                    width: 250,
-                                    height: 250
+                    this.stopScanner().then(function() {
+                        try {
+                            self.qrScanner = new Html5Qrcode('qr-reader');
+                            self.qrScanner.start({
+                                    facingMode: 'environment'
+                                }, {
+                                    fps: 10,
+                                    qrbox: {
+                                        width: 250,
+                                        height: 250
+                                    }
+                                },
+                                function(decodedText) {
+                                    self.handleResult(decodedText);
+                                },
+                                function() {}
+                            ).then(function() {
+                                self.scannerRunning = true;
+                            }).catch(function(err) {
+                                self.scannerRunning = false;
+                                var errName = err ? (err.name || err.toString()) : '';
+                                if (errName.includes('NotAllowedError')) {
+                                    self.cameraError = 'Camera permission denied';
+                                } else if (errName.includes('NotFoundError')) {
+                                    self.cameraError = 'No camera found';
+                                } else {
+                                    self.cameraError = 'could not start camera';
                                 }
-                            },
-                            function(decodedText) {
-                                self.handleResult(decodedText);
-                            },
-                            function() {}
-                        ).then(function() {
-                            self.scannerRunning = true;
-                        }).catch(function(err) {
+                                console.warn('[checkinApp] Camera start failed:', err);
+                            });
+                        } catch (e) {
                             self.scannerRunning = false;
-                            var errName = err ? (err.name || err.toString()) : '';
-                            if (errName.indexOf('NotAllowedError') !== -1 || errName.indexOf('Permission') !== -1) {
-                                self.cameraError = 'permission denied, check browser settings';
-                            } else if (errName.indexOf('NotFoundError') !== -1) {
-                                self.cameraError = 'no camera found';
-                            } else {
-                                self.cameraError = 'could not start camera';
-                            }
-                            console.warn('[checkinApp] Camera start failed:', err);
-                        });
-                    } catch (e) {
-                        this.scannerRunning = false;
-                        this.cameraError = 'could not start camera';
-                        console.warn('[checkinApp] Camera start failed:', e);
-                    }
+                            self.cameraError = 'could not start camera';
+                            console.warn('[checkinApp] Camera start failed:', e);
+                        }
+                    });
                 },
+                
 
                 stopScanner() {
                     if (this.qrScanner) {
-                        try {
-                            this.qrScanner.stop().catch(function() {});
-                        } catch (e) {}
+                        var scanner = this.qrScanner;
                         this.qrScanner = null;
                         this.scannerRunning = false;
+                        return scanner.stop().catch(function() {});
                     }
+                    return Promise.resolve();
                 },
+
 
                 processManualCode: function() {
                     console.log('[checkinApp] processManualCode() clicked, code:', this.manualCode);
