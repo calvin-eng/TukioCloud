@@ -45,7 +45,14 @@ title('Check-In');
             <!-- Camera Scanner -->
             <div x-show="mode === 'camera'" class="mb-6">
                 <div id="qr-reader" class="w-full max-w-sm mx-auto rounded-lg overflow-hidden"></div>
-                <div x-show="!scannerRunning" class="mt-3 text-center text-sm text-gray-500 dark:text-gray-400">
+                
+                <!-- Camera Error Banner -->
+                <div x-show="cameraError" style="display:none" class="mt-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-600 dark:text-red-400 flex items-center justify-between gap-2">
+                    <span x-text="cameraError"></span>
+                    <button x-show="!scannerRunning && cameraError" @click="startScanner()" class="px-2.5 py-1 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 rounded font-medium hover:bg-red-200 transition-colors shrink-0">Try again</button>
+                </div>
+
+                <div x-show="!scannerRunning && !cameraError" class="mt-3 text-center text-sm text-gray-500 dark:text-gray-400">
                     <button @click="startScanner()" class="text-indigo-600 dark:text-indigo-400 hover:underline">Start camera</button>
                 </div>
             </div>

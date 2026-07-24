@@ -72,6 +72,7 @@
                     online: navigator.onLine,
                     qrScanner: null,
                     scannerRunning: false,
+                    cameraError: '',
 
                     async init() {
                         console.log('[checkinApp] init() fired');
@@ -105,7 +106,19 @@
 
                     startScanner() {
                         console.log('[checkinApp] startScanner() clicked');
-                        if (typeof Html5Qrcode === 'undefined') { console.warn('[checkinApp] Html5Qrcode not loaded'); return; }
+                        this.cameraError = '';
+                        if (!window.isSecureContext) {
+                            this.cameraError = 'Secure context (HTTPS) required for camera access';
+                            return;
+                        }
+                        if (!navigator.mediaDevices?.getUserMedia) {
+                            this.cameraError = 'Camera API not supported in this browser';
+                            return;
+                        }
+                        if (typeof Html5Qrcode === 'undefined') {
+                            this.cameraError = 'QR scanner script failed to load';
+                            return;
+                        }
                         this.stopScanner();
                         var self = this;
                         try {
@@ -115,9 +128,23 @@
                                 { fps: 10, qrbox: { width: 250, height: 250 } },
                                 function (decodedText) { self.handleResult(decodedText); },
                                 function () {}
-                            );
-                            this.scannerRunning = true;
+                            ).then(function () {
+                                self.scannerRunning = true;
+                            }).catch(function (err) {
+                                self.scannerRunning = false;
+                                var errName = err ? (err.name || err.toString()) : '';
+                                if (errName.indexOf('NotAllowedError') !== -1 || errName.indexOf('Permission') !== -1) {
+                                    self.cameraError = 'permission denied, check browser settings';
+                                } else if (errName.indexOf('NotFoundError') !== -1) {
+                                    self.cameraError = 'no camera found';
+                                } else {
+                                    self.cameraError = 'could not start camera';
+                                }
+                                console.warn('[checkinApp] Camera start failed:', err);
+                            });
                         } catch (e) {
+                            this.scannerRunning = false;
+                            this.cameraError = 'could not start camera';
                             console.warn('[checkinApp] Camera start failed:', e);
                         }
                     },
