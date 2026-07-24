@@ -1,31 +1,90 @@
 <?php
 
-use function Livewire\Volt\{layout, title};
+use App\Models\Event;
+use App\Models\Guest;
+use Livewire\Attributes\Layout;
+use Livewire\Volt\Component;
 
-layout('layouts.app');
-title('Check-In');
+new #[Layout('layouts.app')] class extends Component
+{
+    public string $selectedEventId = '';
+
+    public function mount(): void
+    {
+        $events = Event::where('tenant_id', session('tenant_id'))->get();
+        if ($events->count() === 1) {
+            $this->selectedEventId = (string) $events->first()->id;
+        }
+    }
+
+    public function updatedSelectedEventId(string $value): void
+    {
+        if (!$value) return;
+
+        $tenantId = session('tenant_id');
+        $event = Event::where('tenant_id', $tenantId)->find((int) $value);
+        if (!$event) return;
+
+        $guests = Guest::query()
+            ->select('guests.id', 'guests.name', 'guests.qr_token', 'guests.short_code', 'guests.event_id', 'checkins.checked_in_at as checked_in_at')
+            ->leftJoin('checkins', 'guests.id', '=', 'checkins.guest_id')
+            ->where('guests.event_id', $event->id)
+            ->where('guests.tenant_id', $tenantId)
+            ->get();
+
+        $this->dispatch('guests-loaded', eventId: $event->id, guests: $guests->toArray());
+    }
+
+    public function render(): mixed
+    {
+        $tenantId = session('tenant_id');
+        $events = Event::where('tenant_id', $tenantId)->get();
+        $selectedEvent = null;
+        $guests = collect();
+
+        if ($this->selectedEventId) {
+            $selectedEvent = $events->firstWhere('id', (int) $this->selectedEventId);
+        } else {
+            $selectedEvent = $events->first();
+        }
+
+        if ($selectedEvent) {
+            $guests = Guest::query()
+                ->select('guests.id', 'guests.name', 'guests.qr_token', 'guests.short_code', 'guests.event_id', 'checkins.checked_in_at as checked_in_at')
+                ->leftJoin('checkins', 'guests.id', '=', 'checkins.guest_id')
+                ->where('guests.event_id', $selectedEvent->id)
+                ->where('guests.tenant_id', $tenantId)
+                ->get();
+        }
+
+        return view('livewire.pages.checkin.index', [
+            'events' => $events,
+            'selectedEvent' => $selectedEvent,
+            'guests' => $guests,
+        ]);
+    }
+};
 
 ?>
 
-@php
-    $tenantId = session('tenant_id');
-    $event = \App\Models\Event::where('tenant_id', $tenantId)->first();
-    $guests = $event ? \App\Models\Guest::query()
-        ->select('guests.id', 'guests.name', 'guests.qr_token', 'guests.short_code', 'guests.event_id', 'checkins.checked_in_at as checked_in_at')
-        ->leftJoin('checkins', 'guests.id', '=', 'checkins.guest_id')
-        ->where('guests.event_id', $event->id)
-        ->where('guests.tenant_id', $tenantId)
-        ->get() : collect();
-@endphp
-
 <div>
-    @if ($event)
+    @if ($selectedEvent)
     <div class="py-12" x-data="checkinApp()" x-init="init()">
         <div class="mx-auto px-4 sm:px-6 lg:px-8 max-w-2xl">
             <!-- Header -->
             <div class="mb-6">
                 <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Check-In</h1>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ $event->name }}</p>
+                @if ($events->count() > 1)
+                <div class="mt-3">
+                    <select wire:model.live="selectedEventId"
+                            class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
+                        @foreach ($events as $ev)
+                            <option value="{{ $ev->id }}">{{ $ev->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                @endif
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">{{ $selectedEvent->name }}</p>
             </div>
 
             <!-- Mode Toggle -->
@@ -155,7 +214,7 @@ title('Check-In');
             window._resolveTukioCheckinReady = resolve;
         });
         window.__CHECKIN_DATA = {
-            eventId: {{ $event->id }},
+            eventId: {{ $selectedEvent->id }},
             guests: @json($guests)
         };
     </script>

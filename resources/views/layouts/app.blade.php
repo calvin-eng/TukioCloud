@@ -103,6 +103,22 @@
                         await TukioCheckin.loadGuests(window.__CHECKIN_DATA.guests);
                     }
 
+                    window.addEventListener('guests-loaded', function (e) {
+                        var data = e.detail;
+                        if (window.TukioCheckin) {
+                            window.__CHECKIN_DATA = window.__CHECKIN_DATA || {};
+                            window.__CHECKIN_DATA.eventId = data.eventId;
+                            window.__CHECKIN_DATA.guests = data.guests;
+                            TukioCheckin.loadGuests(data.guests);
+                        }
+                        // refresh list in the Alpine scope
+                        if (window.TukioCheckin) {
+                            self.recentCheckins = [];
+                            self.pendingCount = 0;
+                            self.refreshList();
+                        }
+                    });
+
                     await this.refreshList();
                     if (this.mode === 'camera') {
                         this.$nextTick(function() {

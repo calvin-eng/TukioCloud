@@ -13,10 +13,7 @@ async function loadGuests(guests) {
 
     console.log('[TukioCheckin] Syncing', guests.length, 'guests to IndexedDB...');
     await db.transaction('rw', db.guests, async () => {
-        var eventId = window.__CHECKIN_DATA && window.__CHECKIN_DATA.eventId;
-        if (eventId) {
-            await db.guests.where('event_id').equals(eventId).delete();
-        }
+        await db.guests.clear();
         for (var i = 0; i < guests.length; i++) {
             var g = guests[i];
             await db.guests.put({
@@ -62,7 +59,7 @@ async function updateByGuestId(guestId, updates) {
 }
 
 async function processToken(token) {
-    var trimmed = (token || '').trim();
+    var trimmed = (token || '').trim().toUpperCase();
     if (!trimmed) return { status: 'invalid', name: '', message: 'Please enter a valid code' };
 
     var guest = await db.guests.get(trimmed);
